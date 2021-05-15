@@ -1,0 +1,210 @@
+module anurupyena (dividend, divisor, mdividend, mdivisor, remainder, quotient);
+  input [13:0] dividend;
+  input [7:0] divisor;
+  output reg [13:0] mdividend;
+  output reg [7:0] mdivisor;
+  output reg [13:0] remainder;
+  output reg [13:0] quotient;
+
+  reg [13:0] c_dvd, t_dvd, c_dvs;
+  reg[7:0] t_dvs;
+  integer dvd[0:3], dvs[0:1];
+  integer i, j, flag, m, n;
+  integer difference, t_diff, diff[0:1];
+  integer res[0:3], rem, quot;
+  integer fact, done, itr;
+
+  always @(dividend or divisor) begin
+
+    $dumpfile("dump.vcd");
+    $dumpvars(1);
+
+    c_dvd = dividend;
+    done = 0;
+    quot = 0;
+    rem = 0;
+    itr = 1;
+
+    fact = 100 / divisor;
+    c_dvs = divisor * fact;
+
+    while(done == 0)
+      begin
+
+        //Calculate length of dividend and convert to vector
+        t_dvd = c_dvd;
+        m = 4;
+        for(i = 0; i<4; i = i+1)
+          begin
+            dvd[i] = 9;
+            flag = 0;
+            for(j = 1; flag == 0 && j<10; j = j+1)
+              begin
+                if(t_dvd < (10**(3-i))*j)
+                  begin
+                    dvd[i] = j-1;
+                    flag = 1;
+                  end
+              end
+            if(dvd[i] == 0)
+              begin
+                m = m-1;
+              end
+            t_dvd = t_dvd - dvd[i](10*(3-i));
+          end
+
+        //Calculate length of divisor and convert to vector
+        t_dvs = c_dvs;
+        n = 2;
+        for(i = 0; i<2; i = i+1)
+          begin
+            dvs[i] = 9;
+            flag = 0;
+            for(j = 1; flag == 0 && j<10; j = j+1)
+              begin
+                if(t_dvs < (10**(1-i))*j)
+                  begin
+                    dvs[i] = j-1;
+                    flag = 1;
+                  end
+              end
+            if(dvs[i] == 0)
+              begin
+                n = n-1;
+              end
+            t_dvs = t_dvs - dvs[i](10*(1-i));
+          end
+
+        //Calculate difference between divisor and next power of 10 and store as vector
+        difference = 100 - c_dvs;
+        t_diff = difference;
+        for(i = 0; i<2; i = i+1)
+          begin
+            diff[i] = 9;
+            flag = 0;
+            for(j = 1; flag == 0 && j<10; j = j+1)
+            begin
+              if(t_diff < (10**(1-i))*j)
+                begin
+                  diff[i] = j-1;
+                  flag = 1;
+                end
+            end
+            t_diff = t_diff - diff[i](10*(1-i));
+          end
+
+
+        //Calculate result and seperate remainder and quotient
+        if(dvd[0] != 0)
+          begin
+            for(i = 0; i<4; i = i+1)
+              begin
+                res[i] = dvd[i];
+              end
+
+            for(i = 0; i<2; i = i+1)
+              begin
+                for(j = 0; j<2; j = j+1)
+                  begin
+                    res[i+j+1] = res[i+j+1] + res[i]*diff[j];
+                  end
+              end
+
+            quot = quot + res[0]*10 + res[1];
+            rem = res[2]*10 + res[3];
+          end
+
+        else if(dvd[1] != 0)
+          begin
+            dvd[0] = dvd[1];
+            dvd[1] = dvd[2];
+            dvd[2] = dvd[3];
+            dvd[3] = -1;
+            for(i = 0; i<3; i = i+1)
+              begin
+                res[i] = dvd[i];
+              end
+
+            for(i = 0; i<1; i = i+1)
+              begin
+                for(j = 0; j<2; j = j+1)
+                  begin
+                    res[i+j+1] = res[i+j+1] + res[i]*diff[j];
+                  end
+              end
+
+            quot = quot + res[0];
+            rem = res[1]*10 + res[2];
+          end
+
+        else
+          begin
+            dvd[0] = dvd[2];
+            dvd[1] = dvd[3];
+            dvd[2] = -1;
+            dvd[3] = -1;
+            for(i = 0; i<2; i = i+1)
+              begin
+                res[i] = dvd[i];
+              end
+
+            if(c_dvd < c_dvs)
+              begin
+                quot = quot + 0;
+                rem = c_dvd;
+              end
+            else
+              begin
+                quot = quot + 1;
+                rem = c_dvd - c_dvs;
+              end
+          end
+        $display("Iteration %0d", itr);
+        $display("Quotient = %0d", quot);
+        $display("Remainder = %0d", rem);
+        $display(" ");
+        mdividend = c_dvd;
+        mdivisor = c_dvs;
+        quotient = quot;
+        remainder = rem;
+        #1;
+        itr = itr + 1;
+        if(rem < c_dvs)
+          begin
+            done = 1;
+          end
+        else
+          begin
+            c_dvd = rem;
+            rem = 0;
+          end
+      end
+
+    quot = quot * fact;
+    if(rem > divisor)
+      begin
+        flag = 0;
+        for(i=2; flag == 0 && i<=fact; i=i+1)
+          begin
+            if((divisor * i) > rem)
+              begin
+                rem = rem - divisor*(i-1);
+                quot = quot + i - 1;
+                flag = 1;
+              end
+          end
+      end
+    $display("Final");
+    $display("Factor = %0d", fact);
+    $display("Quotient = %0d", quot);
+    $display("Remainder = %0d", rem);
+    $display(" ");
+    mdividend = c_dvd;
+    mdivisor = c_dvs;
+    quotient = quot;
+    remainder = rem;
+    #1;
+
+
+  end
+endmodule
